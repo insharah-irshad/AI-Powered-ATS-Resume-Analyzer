@@ -1,0 +1,488 @@
+{
+  "name": "Automated Resume Screening Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        336
+      ],
+      "id": "05b6b620-80f8-4876-876d-5d5842be7559",
+      "name": "JobAnalyzerModel",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ydo3KvkcZnVSW8f7",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        -16
+      ],
+      "id": "47a236ca-9205-4885-a706-d204b4703724",
+      "name": "ResumeAnalyzerModel",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ydo3KvkcZnVSW8f7",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        176
+      ],
+      "id": "f55d5965-0c0b-45e6-ba19-79903e116027",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ydo3KvkcZnVSW8f7",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional career report formatter.\n\nConvert the ATS analysis into a clean recruiter-friendly report.\nReport Date: {{ $('Get Current Date').item.json.report_date }}\nCreate a structured report with:\n\n1. Candidate ATS Score\n2. Strong Matches\n3. Missing Skills\n4. Skill Gap Analysis\n5. Resume Improvement Recommendations\n6. Interview Preparation Points\n\nRules:\n- Keep the report concise and professional.\n- Do not add information that is not present.\n- Make it suitable for sharing with recruiters.\n\nATS Analysis:\n\n{{$json[\"output\"]}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1552,
+        -16
+      ],
+      "id": "b4332837-84db-444b-ac83-4a5389cf416b",
+      "name": "Report Formatter AI"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        192
+      ],
+      "id": "0e176f8d-d768-4916-9cc7-089467944c8b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ydo3KvkcZnVSW8f7",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-application",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        -16
+      ],
+      "id": "68dcc5b5-0b4f-4a61-bfaf-3f118006aa19",
+      "name": "Receive Application",
+      "webhookId": "4d555ae7-aad6-4df6-9264-b44e459b9cca"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        -176
+      ],
+      "id": "caf8090b-2cd8-4404-8695-f8a03d01bcbb",
+      "name": "Extract Resume Text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional resume parser.\n\nAnalyze the resume text provided below.\n\nExtract ONLY information available in the resume.\n\nDo not invent or assume anything.\n\nCreate a structured resume analysis containing:\n\n1. Candidate Name\n2. Education\n3. Technical Skills\n4. Programming Languages\n5. Tools and Technologies\n6. Projects\n7. Certifications\n8. Work Experience\n\nIf information is missing, write \"Not mentioned\".\n\nResume Text:\n\n{{$json.text}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        -176
+      ],
+      "id": "242b2584-83dc-496d-bfaa-1341426ec467",
+      "name": "Resume Analysis AI"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f75f12f7-2943-4f19-8cc6-5d7820d750f7",
+              "name": "resume_analysis",
+              "value": "={{$json.output}}",
+              "type": "string"
+            },
+            {
+              "id": "f99cdd5a-4568-4c12-9c10-3f732c319359",
+              "name": "candidate_email",
+              "value": "={{ $node[\"Extract Resume Text\"].json.text.match(/[\\w.-]+@[\\w.-]+\\.\\w+/)?.[0] || \"Not mentioned\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        608,
+        -176
+      ],
+      "id": "dab504a5-f554-4a71-a984-56db2bce5fb8",
+      "name": "Prepare Resume Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional job description analyzer.\n\nAnalyze ONLY the provided job description.\n\nDo not invent or assume information.\n\nExtract:\n\n1. Required Skills\n2. Tools and Technologies\n3. Experience Requirements\n4. Education Requirements\n5. ATS Keywords\n\nIf information is missing, write \"Not mentioned\".\n\nJob Description:\n\n{{$json.body.job_description}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        144,
+        160
+      ],
+      "id": "62ba1c35-e195-4e4b-b330-88edf0ae91f5",
+      "name": "Job Analysis AI"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5b15818e-3246-43b4-803d-d53c4002d12e",
+              "name": "job_description_analysis",
+              "value": "={{$json.output}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        624,
+        160
+      ],
+      "id": "f82e65d8-3ccc-4bd7-a3f6-978bc6e9d04a",
+      "name": "Prepare Job Data"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        864,
+        -16
+      ],
+      "id": "1c31f083-dcb6-4225-bac5-38dbd92fbbb5",
+      "name": "Combine Resume & Job Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0820ba6a-bb49-4fa2-8b45-94d849889a0b",
+              "name": "report_date",
+              "value": "={{ $now.format('MMMM dd, yyyy') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "c1c00242-cc72-48df-bdab-9209b6b9fd09",
+      "name": "Get Current Date"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert ATS resume matching system.\nToday's Date: {{ $json.report_date }}\nUse the exact date provided above. Do not generate, assume, or invent any other date.\nYou have two inputs:\n\n1. Candidate Resume Analysis:\n{{ $json.resume_analysis }}\n\n2. Job Description Analysis:\n{{ $json.job_description_analysis }}\n\nCompare both inputs.\n\nGenerate:\n\n1. ATS Compatibility Score (0-100%)\n2. Matched Skills\n3. Missing Skills\n4. Skill Gap Analysis\n5. Resume Improvement Recommendations\n6. Interview Preparation Points\n\nScoring:\n- Skills Match: 50%\n- Tools and Technologies: 20%\n- Projects and Experience: 20%\n- Education Alignment: 10%\n\nRules:\n- Do not invent information.\n- Use only provided data.\n- Give realistic score.\n- Keep report professional.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1248,
+        -16
+      ],
+      "id": "84c146ff-1e1b-476b-9392-fbf9d4154476",
+      "name": "ATS Match Analyzer"
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        16
+      ],
+      "id": "825e04f2-5ddc-4b2e-8534-4e62c39b49b1",
+      "name": "Format ATS Report"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Combine Resume & Job Data').item.json.candidate_email }}",
+        "subject": "Your ATS Resume Analysis Report",
+        "message": "={{ $json.data }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        -96
+      ],
+      "id": "6ce57c1b-6573-4750-8d5b-5549c9518d8f",
+      "name": "Send ATS Report Email",
+      "webhookId": "f8543503-3d13-40cf-b6f1-6e8a3e6b36ca",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "U6UQRf3yJqHjfNij",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "JobAnalyzerModel": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Analysis AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ResumeAnalyzerModel": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Resume Analysis AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ATS Match Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Report Formatter AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Formatter AI": {
+      "main": [
+        [
+          {
+            "node": "Format ATS Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Application": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Job Analysis AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Resume Analysis AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Analysis AI": {
+      "main": [
+        [
+          {
+            "node": "Prepare Resume Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Resume Data": {
+      "main": [
+        [
+          {
+            "node": "Combine Resume & Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Analysis AI": {
+      "main": [
+        [
+          {
+            "node": "Prepare Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Job Data": {
+      "main": [
+        [
+          {
+            "node": "Combine Resume & Job Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine Resume & Job Data": {
+      "main": [
+        [
+          {
+            "node": "Get Current Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Date": {
+      "main": [
+        [
+          {
+            "node": "ATS Match Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ATS Match Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Report Formatter AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format ATS Report": {
+      "main": [
+        [
+          {
+            "node": "Send ATS Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "573e7edd-b0a5-449d-bfe1-26be93167c5d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "188eb7daabb95f6689127c568c1f9f70a2deda606c9fb7fac7d389e99452bc0d"
+  },
+  "nodeGroups": [],
+  "id": "JLSqx755SCGkjq1y",
+  "tags": []
+}
