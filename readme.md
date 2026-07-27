@@ -7,6 +7,37 @@ Recruiters manually screening hundreds of resumes is slow and inconsistent. Cand
 
 This workflow solves both problems: it accepts a resume (PDF) and a job description via a webhook, runs them through a four-agent AI pipeline, and automatically emails the candidate a structured, professional ATS compatibility report — scored, gap-analyzed, and formatted for readability.
 
+## Node-by-Node Breakdown
+
+| Node | Type | Purpose |
+|---|---|---|
+| **Receive Application** | Webhook (POST) | Entry point. Accepts a resume file (`resume`, binary/PDF) and a job description (`job_description`, text) in the request body. |
+| **Extract Resume Text** | Extract From File | Converts the uploaded PDF into raw text for downstream parsing. |
+| **Resume Analysis AI** | LangChain Agent (Gemini) | Extracts structured candidate data from the raw resume text: name, education, technical skills, programming languages, tools & technologies, projects, certifications, and work experience. Instructed to never invent missing data. |
+| **Prepare Resume Data** | Set | Packages the resume analysis into a `resume_analysis` field, and separately extracts the candidate's email address via regex (`candidate_email`) directly from the raw resume text, avoiding reliance on the AI to reliably reproduce it. |
+| **Job Analysis AI** | LangChain Agent (Gemini) | Extracts structured job requirements from the job description: required skills, tools & technologies, experience requirements, education requirements, and ATS keywords. |
+| **Prepare Job Data** | Set | Packages the job analysis into a `job_description_analysis` field. |
+| **Combine Resume & Job Data** | Merge (by position) | Joins the resume and job description branches back into a single item so both analyses are available together. |
+| **Get Current Date** | Set | Injects the actual current date (`report_date`, via `$now`) into the pipeline. This prevents the AI from hallucinating a date later on. |
+| **ATS Match Analyzer** | LangChain Agent (Gemini) | Compares the resume analysis against the job description analysis and produces the core evaluation: a weighted ATS compatibility score, matched skills, missing skills, a skill-gap analysis, resume improvement recommendations, and interview preparation points. |
+| **Report Formatter AI** | LangChain Agent (Gemini) | Rewrites the raw ATS analysis into a clean, concise, recruiter-friendly report, using the injected `report_date` rather than generating its own. |
+| **Format ATS Report** | Markdown to HTML | Converts the AI's Markdown-formatted report into proper HTML so it renders correctly in email clients instead of showing raw `**`/`###` symbols. |
+| **Send ATS Report Email** | Gmail | Sends the final HTML report to the candidate's extracted email address, with the subject "Your ATS Resume Analysis Report." |
+
+
+## Scoring Model
+
+The ATS Match Analyzer applies a fixed, weighted rubric:
+
+| Category | Weight |
+|---|---|
+| Skills Match | 50% |
+| Tools & Technologies | 20% |
+| Projects & Experience | 20% |
+| Education Alignment | 10% |
+
+All agents are explicitly instructed not to invent or assume information beyond what's present in the source documents, and to mark missing data as "Not mentioned" rather than guessing.
+
 ## Architecture
 
 ```
@@ -37,38 +68,6 @@ Receive Application (Webhook, POST)
                                           Send ATS Report Email (Gmail)
 ```
 
----
-
-## Node-by-Node Breakdown
-
-| Node | Type | Purpose |
-|---|---|---|
-| **Receive Application** | Webhook (POST) | Entry point. Accepts a resume file (`resume`, binary/PDF) and a job description (`job_description`, text) in the request body. |
-| **Extract Resume Text** | Extract From File | Converts the uploaded PDF into raw text for downstream parsing. |
-| **Resume Analysis AI** | LangChain Agent (Gemini) | Extracts structured candidate data from the raw resume text: name, education, technical skills, programming languages, tools & technologies, projects, certifications, and work experience. Instructed to never invent missing data. |
-| **Prepare Resume Data** | Set | Packages the resume analysis into a `resume_analysis` field, and separately extracts the candidate's email address via regex (`candidate_email`) directly from the raw resume text — avoiding reliance on the AI to reliably reproduce it. |
-| **Job Analysis AI** | LangChain Agent (Gemini) | Extracts structured job requirements from the job description: required skills, tools & technologies, experience requirements, education requirements, and ATS keywords. |
-| **Prepare Job Data** | Set | Packages the job analysis into a `job_description_analysis` field. |
-| **Combine Resume & Job Data** | Merge (by position) | Joins the resume and job description branches back into a single item so both analyses are available together. |
-| **Get Current Date** | Set | Injects the actual current date (`report_date`, via `$now`) into the pipeline. This prevents the AI from hallucinating a date later on. |
-| **ATS Match Analyzer** | LangChain Agent (Gemini) | Compares the resume analysis against the job description analysis and produces the core evaluation: a weighted ATS compatibility score, matched skills, missing skills, a skill-gap analysis, resume improvement recommendations, and interview preparation points. |
-| **Report Formatter AI** | LangChain Agent (Gemini) | Rewrites the raw ATS analysis into a clean, concise, recruiter-friendly report, using the injected `report_date` rather than generating its own. |
-| **Format ATS Report** | Markdown → HTML | Converts the AI's Markdown-formatted report into proper HTML so it renders correctly in email clients instead of showing raw `**`/`###` symbols. |
-| **Send ATS Report Email** | Gmail | Sends the final HTML report to the candidate's extracted email address, with the subject "Your ATS Resume Analysis Report." |
-
-
-## Scoring Model
-
-The ATS Match Analyzer applies a fixed, weighted rubric:
-
-| Category | Weight |
-|---|---|
-| Skills Match | 50% |
-| Tools & Technologies | 20% |
-| Projects & Experience | 20% |
-| Education Alignment | 10% |
-
-All agents are explicitly instructed not to invent or assume information beyond what's present in the source documents, and to mark missing data as "Not mentioned" rather than guessing.
 
 ## Tech Stack
 
