@@ -16,7 +16,7 @@
       "credentials": {
         "googlePalmApi": {
           "id": "Ydo3KvkcZnVSW8f7",
-          "name": "Google Gemini(PaLM) Api account 2"
+          "name": "Google Gemini API"
         }
       }
     },
@@ -35,7 +35,7 @@
       "credentials": {
         "googlePalmApi": {
           "id": "Ydo3KvkcZnVSW8f7",
-          "name": "Google Gemini(PaLM) Api account 2"
+          "name": "Google Gemini API"
         }
       }
     },
@@ -54,7 +54,7 @@
       "credentials": {
         "googlePalmApi": {
           "id": "Ydo3KvkcZnVSW8f7",
-          "name": "Google Gemini(PaLM) Api account 2"
+          "name": "Google Gemini API"
         }
       }
     },
@@ -88,7 +88,7 @@
       "credentials": {
         "googlePalmApi": {
           "id": "Ydo3KvkcZnVSW8f7",
-          "name": "Google Gemini(PaLM) Api account 2"
+          "name": "Google Gemini API"
         }
       }
     },
@@ -291,7 +291,7 @@
       "name": "Send ATS Report Email",
       "webhookId": "f8543503-3d13-40cf-b6f1-6e8a3e6b36ca",
       "credentials": {
-        "gmailOAuth2": {
+        "Gmail Account"": {
           "id": "U6UQRf3yJqHjfNij",
           "name": "Gmail account"
         }
